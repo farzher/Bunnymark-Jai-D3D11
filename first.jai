@@ -14,7 +14,7 @@ VSYNC               :: false;
 DEBUG               :: #run cmdline_flag("DEBUG", or=false); // disables shader optimization
 
 MAX_BUNNIES         :: 2_000_000; // for static memory allocation. game crashes if there's more bunnies than this
-INITIAL_BUNNY_COUNT :: 100_000;
+INITIAL_BUNNY_COUNT :: 1;
 AMOUNT_TO_ADD       :: 5;
 
 ROTATION            :: true;
