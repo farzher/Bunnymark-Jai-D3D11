@@ -68,7 +68,7 @@ Bunny :: struct {
 
     x += vel.x * dt;
     y += vel.y * dt;
-    // rotation += vel.x*360 * dt;
+    rotation += vel.x*360 * dt;
 
     if x > 1 {
       vel.x = -abs(vel.x);
