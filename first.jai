@@ -1,283 +1,57 @@
-/*
-  jai bunnymark by farzher
-  just checking how fast computers can go
-*/
 
-#load "indirectx.jai";
-#load "functions.jai";
+RELEASE :: #run get_build_options().optimization_level == .RELEASE;
+main_filepath :: "main.jai";
+exe_icon_path :: "bunny.ico";
 
-
-window_width        :: 1920/2;
-window_height       :: 1080/2;
-
-VSYNC               :: false;
-DEBUG               :: #run cmdline_flag("DEBUG", or=false); // disables shader optimization
-
-MAX_BUNNIES         :: 2_000_000; // for static memory allocation. game crashes if there's more bunnies than this
-INITIAL_BUNNY_COUNT :: 1;
-AMOUNT_TO_ADD       :: 5;
-
-ROTATION            :: true;
-GRAVITY             :: 33/10; // gravity of 0 gives a lot higher fps for some reason (something to do with the positions being rendered)
-
-PIXEL_DISCARD_ALPHA :: .5;
-ALPHA_BLENDING      :: false;
-DEPTH_BUFFER        :: false;
-
-WRITE_ONLY_NECESSARY_DATA_TO_GPU :: true;
+#run build();
 
 
+build :: () {
+  w := compiler_create_workspace();
+  options := get_build_options(); set_build_options_dc(.{do_output=false});
 
-main :: () {
+  { // build for debug or release
 
-  init_window();
-  init_d3d_device();
+    options.output_executable_name = "bunnymark";
 
-  init_bunnies();
-  init_instance_buffer();
-  init_load_textures();
-  init_bunny_shader();
-
-  while true {
-
-    inputs();
-    update();
-    render();
-
-    tfree();
-
-  }
-}
-
-BunnyGpuData :: struct {
-  using pos: Vector2;
-  #if ROTATION rotation: float;
-}
-Bunny :: struct {
-  using bunny_gpu_data: BunnyGpuData;
-  vel: Vector2;
-  // junk: [1024] u8;
-
-  init :: (using this: *Bunny, index: int) {
-    vel = xy(random_get_within_range(-1,1), random_get_within_range(-1,1));
-    #if ROTATION rotation = xx index;
-  }
-
-  update :: inline (using this: *Bunny) {
-    vel.y -= GRAVITY * dt;
-
-    x += vel.x * dt;
-    y += vel.y * dt;
-    // rotation += vel.x*360 * dt;
-
-    if x > 1 {
-      vel.x = -abs(vel.x);
-    } else if x < -1 {
-      vel.x = abs(vel.x);
+    #if !RELEASE {
+      options.backend = .X64;
     }
-
-    if y < -1 {
-      y = -1;
-      vel.y *= -.85/2;
-      if chance(.5*dt*1000) vel.y += random_get_zero_to_one() * 2;
-    } else if y > 1 {
-      y = 1;
-      vel.y = 0;
+    #if  RELEASE {
+      set_optimization_level(*options, 2, 0);
+      options.stack_trace = false;
+      #run WR.disable_runtime_console();
     }
   }
 
-  // this renders all bunnies, for performance reasons there's no way to render 1 bunny
-  render :: () {
-    // Write bunny data to the gpu instance_buffer
-      #if !WRITE_ONLY_NECESSARY_DATA_TO_GPU then gpu_memcpy(instance_buffer, bunnies.data, bunnies.count * size_of(Bunny));
-      #if  WRITE_ONLY_NECESSARY_DATA_TO_GPU {
-        // instance_buffer.count = xx bunnies.count;
-        // // this uses a for expansion because writing to gpu memory requires a setup and teardown
-        // for instance_buffer  memcpy(it, *bunnies[it_index], instance_buffer.type_size);
+  // done setting options
+  set_build_options(options, w);
 
-        resource: D3D11_MAPPED_SUBRESOURCE;
-        ID3D11DeviceContext_Map(d3d_context, instance_buffer.d3dbuffer, 0, .D3D11_MAP_WRITE_NO_OVERWRITE, 0, *resource);
-        for i: 0..bunnies.count-1  memcpy( resource.pData + i*size_of(BunnyGpuData), *bunnies[i], size_of(BunnyGpuData));
-        ID3D11DeviceContext_Unmap(d3d_context, instance_buffer.d3dbuffer, 0);
-      }
 
-    // Set the correct shader
-      bind_shader(bunny_shader);
+  { // compile
+    compiler_begin_intercept(w);
 
-    // Bind the correct buffers to the shader
-      bind_buffer(0, six_vertex_for_a_quad_buffer);
-      bind_buffer(1, instance_buffer);
+    add_build_file(main_filepath, w);
 
-    // Instanced Draw call
-      ID3D11DeviceContext_DrawInstanced(d3d_context, 6, xx bunnies.count, 0, 0);
+    // waiting for our exe to finish so we can set its icon
+    while true {
+      message := compiler_wait_for_message();
+      if !message continue;
+      if message.workspace != w continue;
+      if message.kind == .COMPLETE break;
+    }
+    compiler_end_intercept(w);
   }
+
+  // set exe icon
+  exe_path := tprint("%1%2.exe", options.output_path, options.output_executable_name);
+  WR.set_icon_by_filename(exe_path, exe_icon_path);
+
+  // delete .pdb if release
+  #if RELEASE  File.file_delete("bunnymark.pdb");
 }
 
-init_bunnies :: () {
-  Global("bunnies: [] Bunny;");
-  bunnies = NewArray(MAX_BUNNIES, Bunny);
-  bunnies.count = INITIAL_BUNNY_COUNT;
-
-  for 0..MAX_BUNNIES-1 #no_abc { Bunny.init(*bunnies[it], it); }
-}
-
-
-ismousedown := false;
-inputs :: () {
-  msg: MSG;
-  while PeekMessageW(*msg, null, 0, 0, PM_REMOVE) {
-    if msg.message == WM_QUIT  exit(0);
-    if msg.message == WM_CHAR && msg.wParam == VK_ESCAPE  exit(0);
-    if msg.message == WM_LBUTTONUP    ismousedown = false;
-    if msg.message == WM_LBUTTONDOWN  ismousedown = true;
-    TranslateMessage( *msg );
-    DispatchMessageW( *msg );
-  }
-}
-
-update :: () {
-
-  fps_man.update(*fps_man);
-  dt_man.update(*dt_man);
-  Global("dt: type_of(dt_man.dt);");
-  dt = dt_man.dt;
-
-
-  // add bunnies if mousedown
-    if ismousedown {
-      mousepos := Mouse.pos(hwnd);
-      w, h := window_size(hwnd);
-      for i: 0..AMOUNT_TO_ADD-1 #no_abc {
-        bunnies[bunnies.count].x = mapnumber(xx mousepos.x, 0,xx w, -1,  1);
-        bunnies[bunnies.count].y = mapnumber(xx mousepos.y, 0,xx h,  1, -1);
-        bunnies.count += 1;
-      }
-    }
-
-
-  // update window title with stats every once in a while
-    Global("max_dt: float;");
-    if dt > max_dt max_dt = dt;
-    if fps_man.ready { fps_man.ready = false;
-      worst_fps : int = xx (1000 / (max_dt*1000));
-      set_window_title(interp("Bunnymark Jai D3D11 | FPS: #{fps_man.fps} | 0% Low: #{`worst_fps} | Buns: #{bunnies.count}"));
-      max_dt = 0;
-    }
-
-
-  // cpu processing update bunnies
-    for * bunny: bunnies  bunny.update(bunny);
-}
-
-
-
-render :: () {
-  // Clear the back buffer
-    color: [4] float;
-    ID3D11DeviceContext_ClearRenderTargetView(d3d_context, render_target_view, *color);
-    #if DEPTH_BUFFER ID3D11DeviceContext_ClearDepthStencilView(d3d_context, depth_stencil_view, xx D3D11_CLEAR_FLAG.D3D11_CLEAR_STENCIL | .D3D11_CLEAR_DEPTH, 1, 0);
-
-  // Draw bunnies
-    Bunny.render();
-
-  // Present the information rendered to the back buffer to the front buffer (the screen)
-    handle_hr(IDXGISwapChain_Present(swap_chain, xx VSYNC, 0));
-}
-
-
-
-
-
-
-
-
-
-
-init_window :: () {
-  #import "Window_Creation";
-  Global("hwnd: HWND;");
-  hwnd = create_window(
-    window_name="",
-    width=window_width, height=window_height,
-    window_x=Monitor.size().w/2-window_width/2,
-    window_y=Monitor.size().h/2-window_height/2,
-  );
-}
-
-init_instance_buffer :: () {
-  Global("instance_buffer: GpuBuffer;");
-  #if  WRITE_ONLY_NECESSARY_DATA_TO_GPU then instance_buffer = gpu_alloc(MAX_BUNNIES, BunnyGpuData);
-  #if !WRITE_ONLY_NECESSARY_DATA_TO_GPU then instance_buffer = gpu_alloc(MAX_BUNNIES, Bunny);
-}
-
-init_load_textures :: () {
-  bunny_texture := load_texture("bunnies.png");
-  bind_texture(0, bunny_texture);
-}
-
-init_bunny_shader :: () {
-
-  // Create the input layout
-    layout := make_input_layout();
-    layout_add(*layout, "TEXCOORD", buffer_slot=0, size=six_vertex_for_a_quad_buffer.type_size);
-    layout_add(*layout, "POSITION", buffer_slot=1, instanced=1, size=size_of(type_of(Bunny.pos)));
-    #if ROTATION
-    layout_add(*layout, "ROT"     , buffer_slot=1, instanced=1, size=size_of(type_of(Bunny.rotation)));
-
-  Global("bunny_shader: GpuShader;");
-  bunny_shader = make_shader(bunny_shader_text, layout);
-
-  bunny_shader_text :: #run interp(#string HLSL
-    #define PI 3.1415926538
-    #define ROTATION %{ifx ROTATION 1 else 0}
-
-    struct VSOut {
-      float4 vert : SV_POSITION;
-      float2 uv   : UV;
-    };
-
-    VSOut VS(
-      float2 uv  : TEXCOORD,
-      float2 pos : POSITION,
-      #if ROTATION
-        float rot  : ROT,
-      #endif
-      uint id : SV_InstanceID) {
-      float2 scale = float2(.05, .1);
-
-      VSOut o;
-
-      #if ROTATION
-        // float rotation = id;
-        float rotation = rot;
-
-        float rads = -rotation * PI / 180;
-        float2 p = float2(uv.x, uv.y)-.5;
-        float2 q;
-        q.x = p.x*cos(rads) - p.y*sin(rads);
-        q.y = p.x*sin(rads) + p.y*cos(rads);
-        o.vert = float4(q*scale + pos, 0, 1);
-      #else
-        float2 q = float2(uv.x, uv.y)-.5;
-        o.vert = float4(q*scale + pos, 0, 1);
-      #endif
-
-      o.uv = float2(1.0/12*(id/1000%12), 1-uv.y); // texture is upside down... need to flip uvs
-      if(uv.x==1) o.uv.x += 1.0/12;
-
-      return o;
-    }
-
-    Texture2D my_texture;
-    SamplerState my_sampler;
-    float4 PS(VSOut input) : SV_Target {
-      float4 color = my_texture.Sample(my_sampler, input.uv);
-
-      #if %{ifx PIXEL_DISCARD_ALPHA 1 else 0}
-        clip(color.a < %{PIXEL_DISCARD_ALPHA} ? -1 : 1);
-      #endif
-
-      return color;
-    }
-  HLSL);
-}
+#import "Basic";
+#import "Compiler";
+WR   :: #import "Windows_Resources";
+File :: #import "File";

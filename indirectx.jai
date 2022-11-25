@@ -163,8 +163,17 @@ GpuTexture :: struct {
   shader_resource_view: *ID3D11ShaderResourceView;
 }
 
-load_image_into_gpu_texture :: load_texture;
 load_texture :: (filename: string) -> GpuTexture {
+  data, w, h, channels := load_image(filename);
+  defer free_image(data);
+  return _load_texture(data, w, h, channels);
+}
+load_texture_from_memory :: (filebytes: []u8) -> GpuTexture {
+  data, w, h, channels := load_image_from_memory(filebytes.data, xx filebytes.count);
+  defer free_image(data);
+  return _load_texture(data, w, h, channels);
+}
+_load_texture :: (data: *u8, w: s32, h: s32, channels: s32) -> GpuTexture {
 
   ensure_default_texture_sampler();
   ensure_default_texture_sampler :: () {
@@ -193,10 +202,6 @@ load_texture :: (filename: string) -> GpuTexture {
       ID3D11DeviceContext_PSSetSamplers(d3d_context, 0, 1, *default_texture_sampler);
   }
 
-  // load image from disk to ram
-  data, w, h := load_image(filename);
-  defer free_image(data);
-
   // dx texture
   image_texture_desc: D3D11_TEXTURE2D_DESC;
   image_texture_desc.Width = xx w;
@@ -210,7 +215,7 @@ load_texture :: (filename: string) -> GpuTexture {
   image_texture_desc.BindFlags = .D3D11_BIND_SHADER_RESOURCE;
   image_subresource_data: D3D11_SUBRESOURCE_DATA;
   image_subresource_data.pSysMem = data;
-  image_subresource_data.SysMemPitch = xx (w*4);
+  image_subresource_data.SysMemPitch = xx (w*channels/*i think channels is correct here?*/);
 
   gpu_texture: GpuTexture;
   handle_hr(ID3D11Device_CreateTexture2D(d3d_device, *image_texture_desc, *image_subresource_data, *gpu_texture.texture2d));
@@ -377,6 +382,12 @@ gpu_memcpy :: (buffer: GpuBuffer, source: *void, count: s64) {
 load_image :: (filename: string) -> data: *u8, w: s32, h: s32, channels: s32 {
   w, h, channels: s32;
   data := stbi_load(temp_c_string(filename), *w, *h, *channels, 0);
+  assert(data != null);
+  return data, w, h, channels;
+}
+load_image_from_memory :: (memory: *u8, count: s32) -> data: *u8, w: s32, h: s32, channels: s32 {
+  w, h, channels: s32;
+  data := stbi_load_from_memory(memory, count, *w, *h, *channels, 0);
   assert(data != null);
   return data, w, h, channels;
 }
