@@ -49,6 +49,7 @@ main :: () {
   }
 }
 
+
 Bunny :: struct {
 
   using           bunny_gpu_data : GpuData;
@@ -104,8 +105,8 @@ Bunny :: struct {
   }
 }
 
+bunnies: [] Bunny;
 init_bunnies :: () {
-  Global("bunnies: [] Bunny;");
   bunnies = NewArray(MAX_BUNNIES, Bunny);
   for 0..MAX_BUNNIES-1 Bunny.init(*bunnies[it], it);
   bunnies.count = INITIAL_BUNNY_COUNT;
@@ -122,11 +123,12 @@ inputs :: () {
   }
 }
 
+
+dt: type_of(dt_man.dt);
 update :: () {
 
   fps_man.update(*fps_man);
   dt_man.update(*dt_man);
-  Global("dt: type_of(dt_man.dt);");
   dt = dt_man.dt;
 
 
@@ -172,9 +174,9 @@ render :: () {
 
 
 
+hwnd: HWND;
 init_window :: () {
   #import "Window_Creation";
-  Global("hwnd: HWND;");
   hwnd = create_window(
     window_name="",
     width=window_width, height=window_height,
@@ -183,8 +185,8 @@ init_window :: () {
   );
 }
 
+instance_buffer: GpuBuffer;
 init_instance_buffer :: () {
-  Global("instance_buffer: GpuBuffer;");
   #if  WRITE_ONLY_NECESSARY_DATA_TO_GPU then instance_buffer = gpu_alloc(MAX_BUNNIES, Bunny.GpuData);
   #if !WRITE_ONLY_NECESSARY_DATA_TO_GPU then instance_buffer = gpu_alloc(MAX_BUNNIES, Bunny);
 }
@@ -197,6 +199,7 @@ init_load_textures :: () {
   bind_texture(0, bunny_texture);
 }
 
+bunny_shader: GpuShader;
 init_bunny_shader :: () {
 
   // Create the input layout
@@ -206,7 +209,6 @@ init_bunny_shader :: () {
     #if ROTATION
     layout_add(*layout, "ROT"     , buffer_slot=1, instanced=1, size=size_of(type_of(Bunny.rotation)));
 
-  Global("bunny_shader: GpuShader;");
   bunny_shader = make_shader(bunny_shader_text, layout);
 
   bunny_shader_text :: #run interp(#string HLSL
