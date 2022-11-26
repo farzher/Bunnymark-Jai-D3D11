@@ -7,22 +7,23 @@
 #load "functions.jai";
 
 
-window_width        :: 1920/2;
-window_height       :: 1080/2;
+window_width         :: 1920/2;
+window_height        :: 1080/2;
 
-VSYNC               :: false;
-DEBUG               :: #run cmdline_flag("DEBUG", or=false); // disables shader optimization
+VSYNC                :: false;
+DEBUG                :: #run cmdline_flag("DEBUG", or=false); // disables shader optimization
+DISABLE_MOUSE_EVENTS :: false; // this prevents fps drops when moving the mouse. but also prevents us from interacting with the window (use esc to close it)
 
-MAX_BUNNIES         :: 2_000_000; // for static memory allocation. game crashes if there's more bunnies than this
-INITIAL_BUNNY_COUNT :: 1;
-AMOUNT_TO_ADD       :: 5;
+MAX_BUNNIES          :: 2_000_000; // for static memory allocation. game crashes if there's more bunnies than this
+INITIAL_BUNNY_COUNT  :: 1;
+AMOUNT_TO_ADD        :: 1;
 
-ROTATION            :: true;
-GRAVITY             :: 33/10; // gravity of 0 gives a lot higher fps for some reason (something to do with the positions being rendered)
+ROTATION             :: true;
+GRAVITY              :: 33/10; // gravity of 0 gives a lot higher fps for some reason (something to do with the positions being rendered)
 
-PIXEL_DISCARD_ALPHA :: .5;
-ALPHA_BLENDING      :: false;
-DEPTH_BUFFER        :: false;
+PIXEL_DISCARD_ALPHA  :: .5;
+ALPHA_BLENDING       :: false;
+DEPTH_BUFFER         :: false;
 
 WRITE_ONLY_NECESSARY_DATA_TO_GPU :: true;
 JUNK_BYTES                       :: 0; // 1024; // extra unnecessary bytes to store in the Bunny structure
@@ -119,14 +120,16 @@ inputs :: () {
   update_window_events(); for event: events_this_frame {
     if event.type     == .QUIT               exit(0);
     if event.key_code == .ESCAPE             exit(0);
-    // if event.key_code == .MOUSE_BUTTON_LEFT  ismousedown = xx event.key_pressed;
+    if event.key_code == .MOUSE_BUTTON_LEFT  ismousedown = xx event.key_pressed;
   }
 
-  // this needs to be called after Input modules inits
-  // this prevents fps drops when moving the mouse
-  disable_mouse_events();
+  #if DISABLE_MOUSE_EVENTS {
+    ismousedown = xx (GetAsyncKeyState(VK_LBUTTON) & 0x8000);
 
-  ismousedown = xx (GetAsyncKeyState(VK_LBUTTON) & 0x8000);
+    // this needs to be called after Input module inits
+    // this prevents fps drops when moving the mouse
+    disable_mouse_events();
+  }
 }
 
 
