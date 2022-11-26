@@ -127,9 +127,9 @@ inputs :: () {
     ismousedown = xx (GetAsyncKeyState(VK_LBUTTON) & 0x8000);
     mousepos := Mouse.pos(hwnd);
 
-    is_mouse_over_windows_frame_bar := mousepos.x >= -10 && mousepos.x <= window_width + 10
-                                    && mousepos.y >= -30 && mousepos.y <= 0;
-    if is_mouse_over_windows_frame_bar enable_mouse_events(); else disable_mouse_events();
+    is_mouse_over_window_title_bar := mousepos.x >= -10 && mousepos.x <= window_width + 10
+                                   && mousepos.y >= -30 && mousepos.y <= 0;
+    if is_mouse_over_window_title_bar enable_mouse_events(); else disable_mouse_events();
   }
 }
 
