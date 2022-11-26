@@ -70,20 +70,13 @@ Bunny :: struct {
     y += vel.y * dt;
     #if ROTATION rotation += vel.x*360 * dt;
 
-    if x > 1 {
-      vel.x = -abs(vel.x);
-    } else if x < -1 {
-      vel.x = abs(vel.x);
-    }
-
-    if y < -1 {
+    if y < -1 { // the most common case: collision with the ground
       y = -1;
       vel.y *= -.85/2;
       if chance(.5*dt*1000) vel.y += random_get_zero_to_one() * 2;
-    } else if y > 1 {
-      y = 1;
-      vel.y = 0;
     }
+    else if x >  1 then vel.x = -abs(vel.x);
+    else if x < -1 then vel.x =  abs(vel.x);
   }
 
   // this renders all bunnies, for performance reasons there's no way to render 1 bunny
@@ -125,18 +118,6 @@ inputs :: () {
     if event.type == .QUIT  exit(0);
     if event.type == .KEYBOARD && event.key_code == .MOUSE_BUTTON_LEFT  ismousedown = xx event.key_pressed;
   }
-
-  // msg: MSG;
-  // while PeekMessageW(*msg, null, 0, 0, PM_REMOVE) {
-  //   if msg.message == WM_QUIT   exit(0);
-  //   if msg.message == WM_CLOSE  exit(0);
-  //   if msg.message == WM_DESTROY  exit(0);
-  //   if msg.message == WM_CHAR && msg.wParam == VK_ESCAPE  exit(0);
-  //   if msg.message == WM_LBUTTONUP    ismousedown = false;
-  //   if msg.message == WM_LBUTTONDOWN  ismousedown = true;
-  //   TranslateMessage( *msg );
-  //   DispatchMessageW( *msg );
-  // }
 }
 
 update :: () {
@@ -176,16 +157,8 @@ update :: () {
 
 
 render :: () {
-  // Clear the back buffer
-    color: [4] float;
-    ID3D11DeviceContext_ClearRenderTargetView(d3d_context, render_target_view, *color);
-    #if DEPTH_BUFFER ID3D11DeviceContext_ClearDepthStencilView(d3d_context, depth_stencil_view, xx D3D11_CLEAR_FLAG.D3D11_CLEAR_STENCIL | .D3D11_CLEAR_DEPTH, 1, 0);
-
-  // Draw bunnies
-    Bunny.render();
-
-  // Present the information rendered to the back buffer to the front buffer (the screen)
-    handle_hr(IDXGISwapChain_Present(swap_chain, xx VSYNC, 0));
+  Bunny.render();
+  present(xx VSYNC);
 }
 
 
@@ -215,7 +188,9 @@ init_instance_buffer :: () {
 }
 
 init_load_textures :: () {
-  bunnies_png_bytes :: #run add_global_data(xx read_entire_file("bunnies.png"), .READ_ONLY); #import "Compiler"; #import "File";
+  #import "Compiler";
+  #import "File";
+  bunnies_png_bytes :: #run add_global_data(xx read_entire_file("bunnies.png"), .READ_ONLY);
   bunny_texture := load_texture_from_memory(bunnies_png_bytes);
   bind_texture(0, bunny_texture);
 }

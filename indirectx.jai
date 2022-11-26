@@ -400,6 +400,12 @@ set_pixel_shader :: (pixel_shader: *ID3D11PixelShader) {
   ID3D11DeviceContext_PSSetShader(d3d_context, pixel_shader,  null, 0);
 }
 
-present :: () {
+present :: (vsync: u32) {
+  // Present the information rendered to the back buffer to the front buffer (the screen)
+  handle_hr(IDXGISwapChain_Present(swap_chain, vsync, 0));
 
+  // Clear the back buffer
+  color: [4] float;
+  ID3D11DeviceContext_ClearRenderTargetView(d3d_context, render_target_view, *color);
+  #if DEPTH_BUFFER ID3D11DeviceContext_ClearDepthStencilView(d3d_context, depth_stencil_view, xx D3D11_CLEAR_FLAG.D3D11_CLEAR_STENCIL | .D3D11_CLEAR_DEPTH, 1, 0);
 }
