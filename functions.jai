@@ -160,11 +160,8 @@ cmdline_flag :: (varname: string, or: $T) -> bool
 
 
 // this prevents fps drops, but doesn't allow us to move or close the window ...
-disable_mouse_events :: () {
-  // Global("disable_mouse_events_init := false;");
-  // if disable_mouse_events_init return;
-  // disable_mouse_events_init = true;
-
+enable_mouse_events   :: (enable := true) { disable_mouse_events(!enable); }
+disable_mouse_events  :: (disable := true) {
   HID_USAGE_PAGE_GENERIC  :: 0x01;
   HID_USAGE_GENERIC_MOUSE :: 0x02;
   RIDEV_INPUTSINK         :: 0x00000100;
@@ -173,11 +170,12 @@ disable_mouse_events :: () {
   riMouse: RAWINPUTDEVICE;
   riMouse.usUsagePage = HID_USAGE_PAGE_GENERIC;
   riMouse.usUsage     = HID_USAGE_GENERIC_MOUSE;
-  riMouse.dwFlags     = RIDEV_INPUTSINK | RIDEV_NOLEGACY;
-  riMouse.hwndTarget  = hwnd;
+  if disable {
+    riMouse.dwFlags     = RIDEV_INPUTSINK | RIDEV_NOLEGACY;
+    riMouse.hwndTarget  = hwnd;
+  }
   RegisterRawInputDevices(*riMouse, 1, size_of(type_of(riMouse)));
 }
-
 
 
 
