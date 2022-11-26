@@ -14,7 +14,7 @@ VSYNC               :: false;
 DEBUG               :: #run cmdline_flag("DEBUG", or=false); // disables shader optimization
 
 MAX_BUNNIES         :: 2_000_000; // for static memory allocation. game crashes if there's more bunnies than this
-INITIAL_BUNNY_COUNT :: 100_000;
+INITIAL_BUNNY_COUNT :: 1;
 AMOUNT_TO_ADD       :: 5;
 
 ROTATION            :: true;
@@ -68,7 +68,7 @@ Bunny :: struct {
 
     x += vel.x * dt;
     y += vel.y * dt;
-    rotation += vel.x*360 * dt;
+    #if ROTATION rotation += vel.x*360 * dt;
 
     if x > 1 {
       vel.x = -abs(vel.x);
@@ -91,15 +91,9 @@ Bunny :: struct {
     // Write bunny data to the gpu instance_buffer
       #if !WRITE_ONLY_NECESSARY_DATA_TO_GPU then gpu_memcpy(instance_buffer, bunnies.data, bunnies.count * size_of(Bunny));
       #if  WRITE_ONLY_NECESSARY_DATA_TO_GPU {
-        instance_buffer.count = xx bunnies.count;
         // this uses a for expansion because writing to gpu memory requires a setup and teardown
-        // for instance_buffer  memcpy(it, *bunnies[it_index], instance_buffer.type_size); // this is 14% slower than when using a constant size_of !
+        instance_buffer.count = xx bunnies.count;
         for instance_buffer  memcpy(it, *bunnies[it_index], size_of(BunnyGpuData));
-
-        // resource: D3D11_MAPPED_SUBRESOURCE;
-        // ID3D11DeviceContext_Map(d3d_context, instance_buffer.d3dbuffer, 0, .D3D11_MAP_WRITE_NO_OVERWRITE, 0, *resource);
-        // for i: 0..bunnies.count-1  memcpy( resource.pData + i*size_of(BunnyGpuData), *bunnies[i], size_of(BunnyGpuData));
-        // ID3D11DeviceContext_Unmap(d3d_context, instance_buffer.d3dbuffer, 0);
       }
 
     // Set the correct shader
@@ -125,15 +119,24 @@ init_bunnies :: () {
 
 ismousedown := false;
 inputs :: () {
-  msg: MSG;
-  while PeekMessageW(*msg, null, 0, 0, PM_REMOVE) {
-    if msg.message == WM_QUIT  exit(0);
-    if msg.message == WM_CHAR && msg.wParam == VK_ESCAPE  exit(0);
-    if msg.message == WM_LBUTTONUP    ismousedown = false;
-    if msg.message == WM_LBUTTONDOWN  ismousedown = true;
-    TranslateMessage( *msg );
-    DispatchMessageW( *msg );
+  #import "Input";
+  update_window_events(); for event: events_this_frame {
+    if event.type == .KEYBOARD && event.key_code == .ESCAPE  exit(0);
+    if event.type == .QUIT  exit(0);
+    if event.type == .KEYBOARD && event.key_code == .MOUSE_BUTTON_LEFT  ismousedown = xx event.key_pressed;
   }
+
+  // msg: MSG;
+  // while PeekMessageW(*msg, null, 0, 0, PM_REMOVE) {
+  //   if msg.message == WM_QUIT   exit(0);
+  //   if msg.message == WM_CLOSE  exit(0);
+  //   if msg.message == WM_DESTROY  exit(0);
+  //   if msg.message == WM_CHAR && msg.wParam == VK_ESCAPE  exit(0);
+  //   if msg.message == WM_LBUTTONUP    ismousedown = false;
+  //   if msg.message == WM_LBUTTONDOWN  ismousedown = true;
+  //   TranslateMessage( *msg );
+  //   DispatchMessageW( *msg );
+  // }
 }
 
 update :: () {
