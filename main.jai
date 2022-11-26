@@ -25,7 +25,7 @@ ALPHA_BLENDING      :: false;
 DEPTH_BUFFER        :: false;
 
 WRITE_ONLY_NECESSARY_DATA_TO_GPU :: true;
-
+JUNK_BYTES                       :: 0; // 1024; // extra unnecessary bytes to store in the Bunny structure
 
 
 main :: () {
@@ -49,14 +49,17 @@ main :: () {
   }
 }
 
-BunnyGpuData :: struct {
-  using pos: Vector2;
-  #if ROTATION rotation: float;
-}
 Bunny :: struct {
-  using bunny_gpu_data: BunnyGpuData;
-  vel: Vector2;
-  // junk: [1024] u8;
+
+  using           bunny_gpu_data : GpuData;
+                  vel            : Vector2;
+  #if JUNK_BYTES  junk_bytes     : [JUNK_BYTES]u8;
+
+  GpuData :: struct {
+    using         pos      : Vector2;
+    #if ROTATION  rotation : float;
+  }
+
 
   init :: (using this: *Bunny, index: int) {
     vel = xy(random_get_within_range(-1,1), random_get_within_range(-1,1));
@@ -86,7 +89,7 @@ Bunny :: struct {
       #if  WRITE_ONLY_NECESSARY_DATA_TO_GPU {
         // this uses a for expansion because writing to gpu memory requires a setup and teardown
         instance_buffer.count = xx bunnies.count;
-        for instance_buffer  memcpy(it, *bunnies[it_index], size_of(BunnyGpuData));
+        for instance_buffer  memcpy(it, *bunnies[it_index], size_of(Bunny.GpuData));
       }
 
     // Set the correct shader
@@ -104,9 +107,8 @@ Bunny :: struct {
 init_bunnies :: () {
   Global("bunnies: [] Bunny;");
   bunnies = NewArray(MAX_BUNNIES, Bunny);
+  for 0..MAX_BUNNIES-1 Bunny.init(*bunnies[it], it);
   bunnies.count = INITIAL_BUNNY_COUNT;
-
-  for 0..MAX_BUNNIES-1 #no_abc { Bunny.init(*bunnies[it], it); }
 }
 
 
@@ -183,7 +185,7 @@ init_window :: () {
 
 init_instance_buffer :: () {
   Global("instance_buffer: GpuBuffer;");
-  #if  WRITE_ONLY_NECESSARY_DATA_TO_GPU then instance_buffer = gpu_alloc(MAX_BUNNIES, BunnyGpuData);
+  #if  WRITE_ONLY_NECESSARY_DATA_TO_GPU then instance_buffer = gpu_alloc(MAX_BUNNIES, Bunny.GpuData);
   #if !WRITE_ONLY_NECESSARY_DATA_TO_GPU then instance_buffer = gpu_alloc(MAX_BUNNIES, Bunny);
 }
 
