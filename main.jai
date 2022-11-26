@@ -117,10 +117,16 @@ ismousedown := false;
 inputs :: () {
   #import "Input";
   update_window_events(); for event: events_this_frame {
-    if event.type == .KEYBOARD && event.key_code == .ESCAPE  exit(0);
-    if event.type == .QUIT  exit(0);
-    if event.type == .KEYBOARD && event.key_code == .MOUSE_BUTTON_LEFT  ismousedown = xx event.key_pressed;
+    if event.type     == .QUIT               exit(0);
+    if event.key_code == .ESCAPE             exit(0);
+    // if event.key_code == .MOUSE_BUTTON_LEFT  ismousedown = xx event.key_pressed;
   }
+
+  // this needs to be called after Input modules inits
+  // this prevents fps drops when moving the mouse
+  disable_mouse_events();
+
+  ismousedown = xx (GetAsyncKeyState(VK_LBUTTON) & 0x8000);
 }
 
 

@@ -159,6 +159,34 @@ cmdline_flag :: (varname: string, or: $T) -> bool
 }
 
 
+disable_mouse_events_init := false;
+disable_mouse_events :: () {
+
+  if disable_mouse_events_init return;
+  disable_mouse_events_init = true;
+
+  HID_USAGE_PAGE_GENERIC  :: 0x01;
+  HID_USAGE_GENERIC_MOUSE :: 0x02;
+  RIDEV_INPUTSINK         :: 0x00000100;
+  RIDEV_NOLEGACY          :: 0x00000030;
+
+  riMouse: RAWINPUTDEVICE;
+  riMouse.usUsagePage = HID_USAGE_PAGE_GENERIC;
+  riMouse.usUsage     = HID_USAGE_GENERIC_MOUSE;
+  riMouse.dwFlags     = RIDEV_INPUTSINK | RIDEV_NOLEGACY;
+  riMouse.hwndTarget  = hwnd;
+  RegisterRawInputDevices(*riMouse, 1, size_of(type_of(riMouse)));
+
+  // rik: RAWINPUTDEVICE;
+  // rik.usUsagePage = 0x01;
+  // rik.usUsage = 0x06;            // HID keyboard
+  // rik.dwFlags = 0; //RIDEV_NOHOTKEYS;
+  // rik.hwndTarget = null;
+  // RegisterRawInputDevices(*rik, 1, size_of(type_of(rik)));
+}
+
+
+
 
 // tstr
 TStr :: struct {#as str: string; }
