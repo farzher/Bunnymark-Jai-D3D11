@@ -160,7 +160,7 @@ cmdline_flag :: (varname: string, or: $T) -> bool
 
 
 // this prevents fps drops, but doesn't allow us to move or close the window ...
-enable_mouse_events   :: (enable := true) { disable_mouse_events(!enable); }
+enable_mouse_events   :: (enable  := true) { disable_mouse_events(!enable); }
 disable_mouse_events  :: (disable := true) {
   HID_USAGE_PAGE_GENERIC  :: 0x01;
   HID_USAGE_GENERIC_MOUSE :: 0x02;

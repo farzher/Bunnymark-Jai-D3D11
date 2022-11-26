@@ -15,7 +15,7 @@ DEBUG                :: #run cmdline_flag("DEBUG", or=false); // disables shader
 DISABLE_MOUSE_EVENTS :: true; // this prevents fps drops when moving the mouse.
 
 MAX_BUNNIES          :: 2_000_000; // for static memory allocation. game crashes if there's more bunnies than this
-INITIAL_BUNNY_COUNT  :: 100_000;
+INITIAL_BUNNY_COUNT  :: 1;
 AMOUNT_TO_ADD        :: 1;
 
 ROTATION             :: true;
@@ -129,7 +129,6 @@ inputs :: () {
 
     is_mouse_over_windows_frame_bar := mousepos.x >= -10 && mousepos.x <= window_width + 10
                                     && mousepos.y >= -30 && mousepos.y <= 0;
-
     if is_mouse_over_windows_frame_bar enable_mouse_events(); else disable_mouse_events();
   }
 }
