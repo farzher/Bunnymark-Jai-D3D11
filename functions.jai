@@ -178,6 +178,24 @@ disable_mouse_events  :: (disable := true) {
 }
 
 
+windows_improve_performance :: () {
+  #if OS == .WINDOWS {
+
+    kernel32    :: #foreign_system_library "kernel32";
+    SetPriorityClass :: (hProcess: Windows.HANDLE, dwPriorityClass: Windows.DWORD) -> Windows.BOOL #foreign kernel32;
+    HIGH_PRIORITY_CLASS :: 0x00000080;
+
+    {
+      SetProcessDPIAware();
+      // windows junk to improve frame times
+      SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+      SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+      timeBeginPeriod(1); // makes sleep accurate down to 1ms instead of ~15ms which is the default
+    }
+  }
+}
+
+
 
 // tstr
 TStr :: struct {#as str: string; }

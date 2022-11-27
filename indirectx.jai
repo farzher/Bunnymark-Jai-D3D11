@@ -80,7 +80,7 @@ init_d3d_device :: () {
 
   init_depth_buffer();
   init_alpha_blending();
-  init_six_vertex_for_a_quad_buffer();
+  init_six_vertex_for_a_square_buffer();
 }
 
 
@@ -142,12 +142,12 @@ init_alpha_blending :: () {
   }
 }
 
-init_six_vertex_for_a_quad_buffer :: () {
+init_six_vertex_for_a_square_buffer :: () {
   Vert :: Vector2;
   verts := Vert.[.{1,0}, .{0,0}, .{0,1}, .{1,0}, .{0,1}, .{1,1}];
 
-  Global("six_vertex_for_a_quad_buffer: GpuBuffer;");
-  six_vertex_for_a_quad_buffer = gpu_alloc(verts.count, Vert, data=verts.data);
+  Global("six_vertex_for_a_square_buffer: GpuBuffer;");
+  six_vertex_for_a_square_buffer = gpu_alloc(verts.count, Vert, data=verts.data);
 }
 
 

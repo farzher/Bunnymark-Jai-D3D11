@@ -12,7 +12,7 @@ window_height        :: 1080/2;
 
 VSYNC                :: false;
 DEBUG                :: #run cmdline_flag("DEBUG", or=false); // disables shader optimization
-DISABLE_MOUSE_EVENTS :: true; // this prevents fps drops when moving the mouse.
+DISABLE_MOUSE_EVENTS :: true; // this prevents fps drops when moving the mouse. but this also causes some weirdness
 
 MAX_BUNNIES          :: 2_000_000; // for static memory allocation. game crashes if there's more bunnies than this
 INITIAL_BUNNY_COUNT  :: 1;
@@ -30,6 +30,8 @@ JUNK_BYTES                       :: 0; // 1024; // extra unnecessary bytes to st
 
 
 main :: () {
+
+  windows_improve_performance();
 
   init_window();
   init_d3d_device();
@@ -98,7 +100,7 @@ Bunny :: struct {
       bind_shader(bunny_shader);
 
     // Bind the correct buffers to the shader
-      bind_buffer(0, six_vertex_for_a_quad_buffer);
+      bind_buffer(0, six_vertex_for_a_square_buffer);
       bind_buffer(1, instance_buffer);
 
     // Instanced Draw call
@@ -214,7 +216,7 @@ init_bunny_shader :: () {
 
   // Create the input layout
     layout := make_input_layout();
-    layout_add(*layout, "TEXCOORD", buffer_slot=0, size=six_vertex_for_a_quad_buffer.type_size);
+    layout_add(*layout, "TEXCOORD", buffer_slot=0, size=six_vertex_for_a_square_buffer.type_size);
     layout_add(*layout, "POSITION", buffer_slot=1, instanced=1, size=size_of(type_of(Bunny.pos)));
     #if ROTATION
     layout_add(*layout, "ROT"     , buffer_slot=1, instanced=1, size=size_of(type_of(Bunny.rotation)));
