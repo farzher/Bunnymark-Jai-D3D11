@@ -1,7 +1,7 @@
 
 RELEASE :: #run get_build_options().optimization_level == .RELEASE;
-main_filepath :: "main.jai";
-exe_icon_path :: "bunny.ico";
+main_filepath :: "src/main.jai";
+exe_icon_path :: "assets/bunny.ico";
 
 #run build();
 

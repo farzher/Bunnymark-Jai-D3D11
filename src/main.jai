@@ -206,7 +206,7 @@ init_instance_buffer :: () {
 init_load_textures :: () {
   #import "Compiler";
   #import "File";
-  bunnies_png_bytes :: #run add_global_data(xx read_entire_file("bunnies.png"), .READ_ONLY);
+  bunnies_png_bytes :: #run add_global_data(xx read_entire_file("assets/bunnies.png"), .READ_ONLY);
   bunny_texture := load_texture_from_memory(bunnies_png_bytes);
   bind_texture(0, bunny_texture);
 }
