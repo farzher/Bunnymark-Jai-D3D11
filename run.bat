@@ -1,1 +1,1 @@
-jai first.jai && bunnymark.exe || PAUSE
+jai first.jai -release && bunnymark.exe || PAUSE
