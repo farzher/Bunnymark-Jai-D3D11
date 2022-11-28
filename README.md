@@ -14,5 +14,5 @@ https://github.com/farzher/Bunnymark-Jai-D3D11/releases/download/v0.0.0/bunnymar
 
 
 
-### Build from source (last built using jai v0.1.045)
+### Build From Source (last built using jai #compiler_version(v0.1.46))
 1. run `run.bat`

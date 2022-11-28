@@ -66,7 +66,7 @@ Bunny :: struct {
 
 
   init :: (using this: *Bunny, index: int) {
-    vel = xy(random_get_within_range(-1,1), random_get_within_range(-1,1));
+    vel = .{x=random_get_within_range(-1,1), y=random_get_within_range(-1,1)};
     #if ROTATION rotation = xx index;
   }
 
