@@ -132,6 +132,9 @@ inputs :: () {
     is_mouse_over_window_title_bar := mousepos.x >= -10 && mousepos.x <= window_width + 10
                                    && mousepos.y >= -30 && mousepos.y <= 0;
     if is_mouse_over_window_title_bar enable_mouse_events(); else disable_mouse_events();
+    // is_mouse_inside_window := mousepos.x >= 0 && mousepos.x <= window_width
+    //                        && mousepos.y >= 0 && mousepos.y <= window_height;
+    // if is_mouse_inside_window disable_mouse_events(); else enable_mouse_events();
   }
 }
 
