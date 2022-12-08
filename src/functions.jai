@@ -213,7 +213,7 @@ interp :: (code: Code) -> string #expand {
     // loop through str char by char, translating it into a format_str
     for i: 0 .. str.count-1 {
 
-      is_start_of_interpolated_code := (str[i] == #char"#" || str[i] == #char"%" || str[i] == #char"$") && str[i+1] == #char"{";
+      is_start_of_interpolated_code := (str[i] == #char"#" || str[i] == #char"%" || str[i] == #char"$") && (i+1 < str.count-1 && str[i+1] == #char"{");
 
       // if this character is a % that's not part of code, transform it into %% so it's interpreted as a normal %
       if !is_start_of_interpolated_code && str[i] == #char"%" {
