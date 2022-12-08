@@ -196,81 +196,60 @@ windows_improve_performance :: () {
 }
 
 
-
-// tstr
-TStr :: struct {#as str: string; }
-tstr: TStr;
-to_tstr :: (str: string) -> TStr {
-   s: TStr = ---;
-   s.str = str;
-   return s;
-}
-tstr_join :: (a:string, b:string) -> string {
-    bytes := 0;
-    bytes += a.count;
-    bytes += b.count;
-    if !bytes return "";
-
-    result: string;
-    result.count = bytes;
-    result.data  = talloc(bytes);
-    assert(result.data != null);
-
-    cursor := result.data;
-    memcpy(cursor, a.data, a.count);
-    cursor += a.count;
-    memcpy(cursor, b.data, b.count);
-
-    cursor += b.count;
-    assert(cursor == result.data + result.count);
-
-    return result;
-}
-operator + :: (a: TStr, b: TStr)   -> TStr            {return to_tstr(tstr_join(a.str, b.str)); }
-operator + :: (a: TStr, b: string) -> TStr #symmetric {return a + to_tstr(b); }
-operator + :: (a: TStr, b: int)    -> TStr #symmetric {return to_tstr(tprint("%0%", a.str, b)); }
-operator + :: (a: TStr, b: float)  -> TStr #symmetric {return to_tstr(tprint("%0%", a.str, b)); }
-
-
-interp :: (_str: string) -> string #expand {
-  #insert -> string {
+// string interpolation.
+// example: interp("hello %{name}") will compile to tprint("hello %", name)
+// argument is a Code instead of string because we need some way to get a
+// Code of the caller's scope to #insert,scope(code) into it
+// this seems a bit weird? but works
+interp :: (code: Code) -> string #expand {
+  #insert,scope(code) -> string {
     String :: #import "String";
 
-    builder: String_Builder;
+    str := String.replace(#insert code, "\n", "\\n");
 
-    str := String.replace(_str, "\n", "\\n");
+    format_str: String_Builder;
+    arguments: [..] string;
 
-    codestart := 0;
-    strstart := 0;
-
+    // loop through str char by char, translating it into a format_str
     for i: 0 .. str.count-1 {
 
-      //
-      if (str[i] == #char"#" || str[i] == #char"%") && str[i+1] == #char"{" {
+      is_start_of_interpolated_code := (str[i] == #char"#" || str[i] == #char"%" || str[i] == #char"$") && str[i+1] == #char"{";
 
-        append(*builder, tstr+ "+\""+String.slice(str, strstart, i-strstart)+"\"");
-
-        i += 2;
-        codestart = i;
+      // if this character is a % that's not part of code, transform it into %% so it's interpreted as a normal %
+      if !is_start_of_interpolated_code && str[i] == #char"%" {
+        append(*format_str, "%%");
         continue;
       }
 
-      if codestart {
-        if str[i] == #char"}" {
-          code := String.slice(str, codestart, i-codestart);
-          code = String.replace(code, "'", "\"");
-          append(*builder, tstr+ "+("+code+")");
-          i += 1;
-          strstart = i;
-          codestart = 0;
-        }
+      // if this character is just a normal part of the string, write the character to format_str as is
+      if !is_start_of_interpolated_code {
+        append(*format_str, str[i]);
+        continue;
       }
 
-      if i == str.count-1 {
-        append(*builder, tstr+ "+\""+String.slice(str, strstart, strstart+i+1)+"\"");
+      // we have a block of interpolated code. write % to the format_str and push the code into arguments
+      if is_start_of_interpolated_code i += 2;
+      if is_start_of_interpolated_code {
+        closing_brace_index := String.find_index_from_left(str, "}", i+1);
+        assert(closing_brace_index != -1);
+
+        arg := String.slice(str, i, closing_brace_index - i);
+        array_add(*arguments, arg);
+
+        append(*format_str, tprint("%%%", arguments.count));
+
+        i = xx closing_brace_index;
+        continue;
       }
     }
 
-    return tstr+ "return tstr" + builder_to_string(*builder) + ";";
+    arguments_string := "";
+    if arguments.count {
+      builder: String_Builder;
+      for arguments append(*builder, tprint(", %", it));
+      arguments_string = builder_to_string(*builder);
+    }
+
+    return tprint("return tprint(\"%\"%);", builder_to_string(*format_str), arguments_string);
   }
 }
