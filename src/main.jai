@@ -160,7 +160,7 @@ update :: () {
 
 
   // update window title with stats every once in a while
-    Global("max_dt: float;");
+    Global(#code max_dt: float);
     if dt > max_dt max_dt = dt;
     if fps_man.ready { fps_man.ready = false;
       worst_fps : int = xx (1000 / (max_dt*1000));
@@ -207,9 +207,7 @@ init_instance_buffer :: () {
 }
 
 init_load_textures :: () {
-  #import "Compiler";
-  #import "File";
-  bunnies_png_bytes :: #run add_global_data(xx read_entire_file("assets/bunnies.png"), .READ_ONLY);
+  bunnies_png_bytes :: #run embed_file("assets/bunnies.png");
   bunny_texture := load_texture_from_memory(bunnies_png_bytes);
   bind_texture(0, bunny_texture);
 }

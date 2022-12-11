@@ -21,12 +21,12 @@
 
 init_d3d_device :: () {
 
-  Global("driver_type        := D3D_DRIVER_TYPE.HARDWARE;");
-  Global("feature_level      : D3D_FEATURE_LEVEL;");
-  Global("d3d_device         : *ID3D11Device;");
-  Global("d3d_context        : *ID3D11DeviceContext;");
-  Global("swap_chain         : *IDXGISwapChain;");
-  Global("render_target_view : *ID3D11RenderTargetView;");
+  Global(#code driver_type        := D3D_DRIVER_TYPE.HARDWARE);
+  Global(#code feature_level      : D3D_FEATURE_LEVEL);
+  Global(#code d3d_device         : *ID3D11Device);
+  Global(#code d3d_context        : *ID3D11DeviceContext);
+  Global(#code swap_chain         : *IDXGISwapChain);
+  Global(#code render_target_view : *ID3D11RenderTargetView);
 
   // get the window size
     window_rect: RECT;
@@ -103,7 +103,7 @@ init_depth_buffer :: () {
     depth_stencil_buffer: *ID3D11Texture2D;
     handle_hr(ID3D11Device_CreateTexture2D(d3d_device, *depth_stencil_desc, null, *depth_stencil_buffer));
 
-    Global("depth_stencil_view: *ID3D11DepthStencilView;");
+    Global(#code depth_stencil_view: *ID3D11DepthStencilView);
     handle_hr(ID3D11Device_CreateDepthStencilView(d3d_device, depth_stencil_buffer, null, *depth_stencil_view));
 
     ID3D11DeviceContext_OMSetRenderTargets(d3d_context, 1, *render_target_view, depth_stencil_view);
@@ -116,7 +116,7 @@ init_alpha_blending :: () {
     depth_stencil_desc2.DepthEnable = xx true;
     depth_stencil_desc2.DepthWriteMask = .ALL;
     depth_stencil_desc2.DepthFunc = .LESS_EQUAL; // kills fps
-    Global("depth_stencil_state: *ID3D11DepthStencilState;");
+    Global(#code depth_stencil_state: *ID3D11DepthStencilState);
     ID3D11Device_CreateDepthStencilState(d3d_device, *depth_stencil_desc2, *depth_stencil_state);
     ID3D11DeviceContext_OMSetDepthStencilState(d3d_context, depth_stencil_state, 0);
 
@@ -133,7 +133,7 @@ init_alpha_blending :: () {
     blendDesc.RenderTarget[0].BlendOpAlpha = .ADD;
     blendDesc.RenderTarget[0].RenderTargetWriteMask = xx D3D11_COLOR_WRITE_ENABLE.ALL;
 
-    Global("blend_state: *ID3D11BlendState;");
+    Global(#code blend_state: *ID3D11BlendState);
     handle_hr(ID3D11Device_CreateBlendState(d3d_device, *blendDesc, *blend_state));
 
     blend_factor := float.[1, 1, 1, 1];
@@ -146,7 +146,7 @@ init_six_vertex_for_a_square_buffer :: () {
   Vert :: Vector2;
   verts := Vert.[.{1,0}, .{0,0}, .{0,1}, .{1,0}, .{0,1}, .{1,1}];
 
-  Global("six_vertex_for_a_square_buffer: GpuBuffer;");
+  Global(#code six_vertex_for_a_square_buffer: GpuBuffer);
   six_vertex_for_a_square_buffer = gpu_alloc(verts.count, Vert, data=verts.data);
 }
 
@@ -177,7 +177,7 @@ _load_texture :: (data: *u8, w: s32, h: s32, channels: s32) -> GpuTexture {
 
   ensure_default_texture_sampler();
   ensure_default_texture_sampler :: () {
-    Global("default_texture_sampler: *ID3D11SamplerState;");
+    Global(#code default_texture_sampler: *ID3D11SamplerState);
     if default_texture_sampler  return;
 
     mylog("create and set a default texture sampler");
@@ -251,7 +251,7 @@ make_vertex_shader :: (shader: string, layout: [] D3D11_INPUT_ELEMENT_DESC) -> *
   handle_hr(ID3D11Device_CreateVertexShader(d3d_device, vs.data, cast(u64) vs.count, null, *vertex_shader));
 
   // make a vertex layout. this is very weird to be here @cleanup
-    Global("vertex_layout: *ID3D11InputLayout;");
+    Global(#code vertex_layout: *ID3D11InputLayout);
     handle_hr(ID3D11Device_CreateInputLayout(d3d_device, layout.data, cast(u32) layout.count, vs.data, cast(u64) vs.count, *vertex_layout));
 
   // Set the input layout
