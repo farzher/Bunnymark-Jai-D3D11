@@ -164,7 +164,7 @@ update :: () {
     if dt > max_dt max_dt = dt;
     if fps_man.ready { fps_man.ready = false;
       worst_fps : int = xx (1000 / (max_dt*1000));
-      set_window_title(interp("Bunnymark Jai D3D11 | FPS: #{fps_man.fps} | 0% Low: #{worst_fps} | Buns: #{bunnies.count}"));
+      set_window_title(_("Bunnymark Jai D3D11 | FPS: #{fps_man.fps} | 0% Low: #{worst_fps} | Buns: #{bunnies.count}"));
       max_dt = 0;
     }
 
@@ -224,7 +224,7 @@ init_bunny_shader :: () {
 
   bunny_shader = make_shader(bunny_shader_text, layout);
 
-  bunny_shader_text :: #run interp(#string HLSL
+  bunny_shader_text :: #run _(#string HLSL
     #define PI 3.1415926538
     #define ROTATION %{ifx ROTATION 1 else 0}
 

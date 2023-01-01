@@ -152,7 +152,7 @@ mapnumber :: (value: float, from1: float, from2: float, to1: float, to2:float, e
 
   if clamp {
     if ratio > 1 then ratio = 1;
-    else if ratio < -1 then ratio = -1;
+    else if ratio < 0 then ratio = 0;
   }
 
   return bdist*ratio + to1;
@@ -195,7 +195,7 @@ disable_mouse_events  :: (disable := true) {
 windows_improve_performance :: () {
   #if OS == .WINDOWS {
 
-    kernel32    :: #foreign_system_library "kernel32";
+    kernel32    :: #system_library "kernel32";
     SetPriorityClass :: (hProcess: Windows.HANDLE, dwPriorityClass: Windows.DWORD) -> Windows.BOOL #foreign kernel32;
     HIGH_PRIORITY_CLASS :: 0x00000080;
 
@@ -210,9 +210,8 @@ windows_improve_performance :: () {
 }
 
 embed_file :: (file_path: string) -> []u8 {
-  Compiler :: #import "Compiler";
-  File     :: #import "File";
-  return Compiler.add_global_data(xx File.read_entire_file(file_path), .READ_ONLY);
+  File :: #import "File";
+  return xx File.read_entire_file(file_path);
 }
 
 

@@ -1,1 +1,1 @@
-jai first.jai -- DEBUG && bunnymark.exe || PAUSE
+jai first.jai - DEBUG && bunnymark.exe || PAUSE
