@@ -81,6 +81,10 @@ init_d3d_device :: () {
   init_depth_buffer();
   init_alpha_blending();
   init_six_vertex_for_a_square_buffer();
+
+  // this is necessary on my laptop! not necessary on my desktop!
+  // my laptop was rendering only points by default, not triangles! resulting in just a black screen.
+  ID3D11DeviceContext_IASetPrimitiveTopology(d3d_context, D3D11_PRIMITIVE_TOPOLOGY.TRIANGLELIST);
 }
 
 
