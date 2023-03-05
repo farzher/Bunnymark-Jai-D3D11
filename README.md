@@ -10,7 +10,7 @@ https://www.youtube.com/watch?v=_cSMGs2LyD8
 
 
 # Download the exe
-https://github.com/farzher/Bunnymark-Jai-D3D11/releases/download/v0.0.1/bunnymark.exe
+https://github.com/farzher/Bunnymark-Jai-D3D11/releases/download/v0.0.2/bunnymark.exe
 
 
 
