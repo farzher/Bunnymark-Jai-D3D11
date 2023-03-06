@@ -11,7 +11,7 @@ window_width         :: 1920/2;
 window_height        :: 1080/2;
 
 VSYNC                :: false;
-FPS_LIMIT            :: 0; // 0 to disable FPS_LIMIT
+FPS_LIMIT            :: 0; // 60; // limit FPS to this value. 0 to disable FPS_LIMIT
 DEBUG                :: #run cmdline_flag("DEBUG", or=false); // disables shader optimization
 DISABLE_MOUSE_EVENTS :: true; // this prevents fps drops when moving the mouse. but this also causes some weirdness
 
@@ -45,12 +45,18 @@ main :: () {
   while true {
 
     #if FPS_LIMIT {
-      Global(#code fps_limit_last_time: float64);
-      if fps_limit_last_time == 0 fps_limit_last_time = 1.0/FPS_LIMIT *-1;
+      Global(#code fps_limit_last_frame_time: float64);
 
-      now := get_time();
-      if (now - fps_limit_last_time) < 1.0/FPS_LIMIT continue;
-      fps_limit_last_time = now;
+      now := get_time() * 1000;
+      ms_per_fame :: 1000.0 / FPS_LIMIT;
+      ms_since_last_frame := now - fps_limit_last_frame_time;
+      ms_until_next_frame := ms_per_fame - ms_since_last_frame;
+      // sleep for 1 ms less than we want to. to ensure we wake up in time
+      // this burns more cpu than we need to but improves frametimes
+      ms_to_sleep : s32 = xx (ms_until_next_frame - 1);
+      if ms_to_sleep > 0 then sleep_milliseconds(ms_to_sleep);
+      if ms_until_next_frame > 0 continue;
+      fps_limit_last_frame_time = now;
     }
 
     inputs();
