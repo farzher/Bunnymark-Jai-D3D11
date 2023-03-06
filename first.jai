@@ -9,10 +9,10 @@ build :: () {
   // seperate build options for debug vs release
   build_options((options: *Build_Options) {
     options.output_executable_name = "bunnymark";
-    options.emit_debug_info = .NONE;
 
     #if !RELEASE then options.backend = .X64;
     #if  RELEASE then #run Windows_Resources.disable_runtime_console();
+    #if  RELEASE then options.emit_debug_info = .NONE;
   });
 
   // wait for the exe to finish compiling, so we can set its icon

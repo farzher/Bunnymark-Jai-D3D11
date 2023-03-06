@@ -11,6 +11,7 @@ window_width         :: 1920/2;
 window_height        :: 1080/2;
 
 VSYNC                :: false;
+FPS_LIMIT            :: 0; // 0 to disable FPS_LIMIT
 DEBUG                :: #run cmdline_flag("DEBUG", or=false); // disables shader optimization
 DISABLE_MOUSE_EVENTS :: true; // this prevents fps drops when moving the mouse. but this also causes some weirdness
 
@@ -42,6 +43,15 @@ main :: () {
   init_bunny_shader();
 
   while true {
+
+    #if FPS_LIMIT {
+      Global(#code fps_limit_last_time: float64);
+      if fps_limit_last_time == 0 fps_limit_last_time = 1.0/FPS_LIMIT *-1;
+
+      now := get_time();
+      if (now - fps_limit_last_time) < 1.0/FPS_LIMIT continue;
+      fps_limit_last_time = now;
+    }
 
     inputs();
     update();
@@ -103,7 +113,8 @@ Bunny :: struct {
       bind_buffer(0, six_vertex_for_a_square_buffer);
       bind_buffer(1, instance_buffer);
 
-    // Instanced Draw call
+    // Instanced Draw call of trianglelist
+      ID3D11DeviceContext_IASetPrimitiveTopology(d3d_context, .TRIANGLELIST);
       ID3D11DeviceContext_DrawInstanced(d3d_context, 6, xx bunnies.count, 0, 0);
   }
 }
@@ -125,16 +136,14 @@ inputs :: () {
     if event.key_code == .MOUSE_BUTTON_LEFT  ismousedown = xx event.key_pressed;
   }
 
+  // this prevents fps drops when moving the mouse. but this also causes some weirdness
   #if DISABLE_MOUSE_EVENTS {
     ismousedown = xx (GetAsyncKeyState(VK_LBUTTON) & 0x8000);
     mousepos := Mouse.pos(hwnd);
 
-    is_mouse_over_window_title_bar := mousepos.x >= -10 && mousepos.x <= window_width + 10
+    is_mouse_over_window_title_bar := mousepos.x >= -10 /*&& mousepos.x <= window_width + 10*/
                                    && mousepos.y >= -30 && mousepos.y <= 0;
     if is_mouse_over_window_title_bar enable_mouse_events(); else disable_mouse_events();
-    // is_mouse_inside_window := mousepos.x >= 0 && mousepos.x <= window_width
-    //                        && mousepos.y >= 0 && mousepos.y <= window_height;
-    // if is_mouse_inside_window disable_mouse_events(); else enable_mouse_events();
   }
 }
 
@@ -160,10 +169,10 @@ update :: () {
 
 
   // update window title with stats every once in a while
-    Global(#code max_dt: float);
+    Global(#code max_dt: float64);
     if dt > max_dt max_dt = dt;
     if fps_man.ready { fps_man.ready = false;
-      worst_fps : int = xx (1000 / (max_dt*1000));
+      worst_fps : int = xx floor(.5+ (1.0 / max_dt));
       set_window_title(_("Bunnymark Jai D3D11 | FPS: #{fps_man.fps} | 0% Low: #{worst_fps} | Buns: #{bunnies.count}"));
       max_dt = 0;
     }
@@ -278,3 +287,7 @@ init_bunny_shader :: () {
     }
   HLSL);
 }
+
+// note: alt+f4 doesn't close the app because modules/input/windows.jai needs this code in case WM_KEYDOWN;
+// if wParam == VK_F4 return DefWindowProcW(hwnd, message, wParam, lParam); // need this here to handle alt+f4 !
+// this is currently a problem with all jai applications

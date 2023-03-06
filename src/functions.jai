@@ -25,7 +25,7 @@ fps_man: struct {
     if elapsed < .5  return;
 
     last_time = get_time();
-    fps = cast(int)( (frame_count - last_frame_count) / elapsed );
+    fps = xx floor(.5+ (frame_count - last_frame_count) / elapsed );
     last_frame_count = frame_count;
     ready = true;
   }
