@@ -44,20 +44,7 @@ main :: () {
 
   while true {
 
-    #if FPS_LIMIT {
-      Global(#code fps_limit_last_frame_time: float64);
-
-      now := get_time() * 1000;
-      ms_per_fame :: 1000.0 / FPS_LIMIT;
-      ms_since_last_frame := now - fps_limit_last_frame_time;
-      ms_until_next_frame := ms_per_fame - ms_since_last_frame;
-      // sleep for 1 ms less than we want to. to ensure we wake up in time
-      // this burns more cpu than we need to but improves frametimes
-      ms_to_sleep : s32 = xx (ms_until_next_frame - 1);
-      if ms_to_sleep > 0 then sleep_milliseconds(ms_to_sleep);
-      if ms_until_next_frame > 0 continue;
-      fps_limit_last_frame_time = now;
-    }
+    maybe_fps_limit();
 
     inputs();
     update();
@@ -65,6 +52,23 @@ main :: () {
 
     tfree();
 
+  }
+}
+
+maybe_fps_limit :: () #expand {
+  #if FPS_LIMIT {
+    Global(#code fps_limit_last_frame_time: float64);
+
+    now := get_time() * 1000;
+    ms_per_fame :: 1000.0 / FPS_LIMIT;
+    ms_since_last_frame := now - fps_limit_last_frame_time;
+    ms_until_next_frame := ms_per_fame - ms_since_last_frame;
+    // sleep for 1 ms less than we want to. to ensure we wake up in time
+    // this burns more cpu than we need to but improves frametimes
+    ms_to_sleep : s32 = xx (ms_until_next_frame - 1);
+    if ms_to_sleep > 0 then sleep_milliseconds(ms_to_sleep);
+    if ms_until_next_frame > 0 continue;
+    fps_limit_last_frame_time = now;
   }
 }
 
@@ -161,6 +165,15 @@ update :: () {
   dt_man.update(*dt_man);
   dt = dt_man.dt;
 
+  // update window title with stats every once in a while
+    Global(#code max_dt: float64);
+    if dt > max_dt max_dt = dt;
+    if fps_man.ready { fps_man.ready = false;
+      worst_fps := round(1.0 / max_dt);
+      set_window_title(_("Bunnymark Jai D3D11 | FPS: #{fps_man.fps} | 0% Low: #{worst_fps} | Buns: #{bunnies.count}"));
+      max_dt = 0;
+    }
+
 
   // add bunnies if mousedown
     if ismousedown {
@@ -171,16 +184,6 @@ update :: () {
         bunnies[bunnies.count].y = mapnumber(xx mousepos.y, 0,xx h,  1, -1);
         bunnies.count += 1;
       }
-    }
-
-
-  // update window title with stats every once in a while
-    Global(#code max_dt: float64);
-    if dt > max_dt max_dt = dt;
-    if fps_man.ready { fps_man.ready = false;
-      worst_fps : int = xx floor(.5+ (1.0 / max_dt));
-      set_window_title(_("Bunnymark Jai D3D11 | FPS: #{fps_man.fps} | 0% Low: #{worst_fps} | Buns: #{bunnies.count}"));
-      max_dt = 0;
     }
 
 
@@ -208,10 +211,11 @@ hwnd: HWND;
 init_window :: () {
   #import "Window_Creation";
   hwnd = create_window(
-    window_name="",
-    width=window_width, height=window_height,
-    window_x=Monitor.size().w/2-window_width/2,
-    window_y=Monitor.size().h/2-window_height/2,
+    window_name = "",
+    width       = window_width,
+    height      = window_height,
+    window_x    = Monitor.size().w/2-window_width/2,
+    window_y    = Monitor.size().h/2-window_height/2,
   );
 }
 

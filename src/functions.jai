@@ -137,6 +137,7 @@ chance :: (percent: float = .5) -> bool {
   return Random.random_get_zero_to_one() < percent;
 }
 
+round :: (x: float64) -> int {return cast(int) floor(.5+ x);}
 
 mapnumber :: (value: float, from1: float, from2: float, to1: float, to2:float, exponent:float=0, clamp:=true) -> float {
   Math :: #import "Math";
