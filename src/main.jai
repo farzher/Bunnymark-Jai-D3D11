@@ -7,27 +7,27 @@
 #load "functions.jai";
 
 
-window_width         :: 1920/2;
-window_height        :: 1080/2;
+window_width              :: 1920/2;
+window_height             :: 1080/2;
 
-VSYNC                :: false;
-FPS_LIMIT            :: 0; // 60; // limit FPS to this value. 0 to disable FPS_LIMIT
-DEBUG                :: #run cmdline_flag("DEBUG", or=false); // disables shader optimization
-DISABLE_MOUSE_EVENTS :: true; // this prevents fps drops when moving the mouse. but this also causes some weirdness
+VSYNC                     :: false;
+FPS_LIMIT                 :: 0; // 60; // limit FPS to this value. 0 to disable FPS_LIMIT
+DISABLE_MOUSE_EVENTS      :: false; // this prevents fps drops when moving the mouse. but this also causes some weirdness
 
-MAX_BUNNIES          :: 2_000_000; // for static memory allocation. game crashes if there's more bunnies than this
-INITIAL_BUNNY_COUNT  :: 1;
-AMOUNT_TO_ADD        :: 1;
+MAX_BUNNIES               :: 2_000_000; // for static memory allocation. game crashes if there's more bunnies than this
+INITIAL_BUNNY_COUNT       :: 1;
+BUNNIES_TO_ADD_PER_SECOND :: 10_000;
 
-ROTATION             :: true;
-GRAVITY              :: 33/10; // gravity of 0 gives a lot higher fps for some reason (something to do with the positions being rendered)
+ROTATION                  :: true;
+GRAVITY                   :: 33/10; // gravity of 0 gives a lot higher fps for some reason (something to do with the positions being rendered)
 
-PIXEL_DISCARD_ALPHA  :: .5;
-ALPHA_BLENDING       :: false;
-DEPTH_BUFFER         :: false;
+PIXEL_DISCARD_ALPHA       :: .5;
+ALPHA_BLENDING            :: false;
+DEPTH_BUFFER              :: false;
 
 WRITE_ONLY_NECESSARY_DATA_TO_GPU :: true;
 JUNK_BYTES                       :: 0; // 1024; // extra unnecessary bytes to store in the Bunny structure
+DEBUG                            :: #run cmdline_flag("DEBUG", or=false); // disables shader optimization
 
 
 main :: () {
@@ -55,6 +55,65 @@ main :: () {
   }
 }
 
+
+ismousedown := false;
+inputs :: () {
+  #import "Input";
+  update_window_events(); for event: events_this_frame {
+    if event.type     == .QUIT               exit(0);
+    if event.key_code == .ESCAPE             exit(0);
+    if event.key_code == .MOUSE_BUTTON_LEFT  ismousedown = xx event.key_pressed;
+  }
+
+  maybe_disable_mouse_events();
+}
+
+dt: type_of(dt_man.dt);
+update :: () {
+
+  fps_man.update(*fps_man);
+  dt_man.update(*dt_man);
+  dt = dt_man.dt;
+
+  // update window title with stats every once in a while
+    Global(#code max_dt: float64);
+    if dt > max_dt max_dt = dt;
+    if fps_man.ready { fps_man.ready = false;
+      worst_fps := round(1.0 / max_dt);
+      set_window_title(_("Bunnymark Jai D3D11 | FPS: #{fps_man.fps} | 0% Low: #{worst_fps} | Buns: #{bunnies.count}"));
+      max_dt = 0;
+    }
+
+
+  // add bunnies if mousedown
+    if ismousedown {
+      mousepos := Mouse.pos(hwnd);
+      w, h := window_size(hwnd);
+      amount_to_add_this_frame : int = xx (BUNNIES_TO_ADD_PER_SECOND * dt);
+      for i: 0..amount_to_add_this_frame-1 #no_abc {
+        bunnies[bunnies.count].x = mapnumber(xx mousepos.x, 0,xx w, -1,  1);
+        bunnies[bunnies.count].y = mapnumber(xx mousepos.y, 0,xx h,  1, -1);
+        bunnies.count += 1;
+      }
+    }
+
+
+  // cpu processing update bunnies
+    for * bunny: bunnies  bunny.update(bunny);
+}
+
+render :: () {
+  Bunny.render();
+  present(xx VSYNC);
+}
+
+
+
+
+
+
+
+
 maybe_fps_limit :: () #expand {
   #if FPS_LIMIT {
     Global(#code fps_limit_last_frame_time: float64);
@@ -67,10 +126,30 @@ maybe_fps_limit :: () #expand {
     // this burns more cpu than we need to but improves frametimes
     ms_to_sleep : s32 = xx (ms_until_next_frame - 1);
     if ms_to_sleep > 0 then sleep_milliseconds(ms_to_sleep);
-    if ms_until_next_frame > 0 continue;
+    if ms_until_next_frame > 0 continue; // macro continues the outer loop
     fps_limit_last_frame_time = now;
   }
 }
+
+maybe_disable_mouse_events :: () {
+  // this prevents fps drops when moving the mouse. but this also causes some weirdness
+  #if DISABLE_MOUSE_EVENTS {
+    ismousedown = xx (GetAsyncKeyState(VK_LBUTTON) & 0x8000);
+
+    // enable mouse events only when you mouse over the window frame
+    // to allow you to drag it or resize it or close it or whatever
+    mousepos := Mouse.pos(hwnd);
+    _x, _y, w, h := get_dimensions(hwnd, right_handed=false);
+    is_mouse_well_inside_game_window := mousepos.x >= +10 && mousepos.x <= w-10
+                                     && mousepos.y >= +10 && mousepos.y <= h-10;
+    is_mouse_well_outside_game_window := !(mousepos.x >=  -10 && mousepos.x <= w+10
+                                      && mousepos.y >= -30-10 && mousepos.y <= h+10);
+    is_mouse_over_window_frame := !is_mouse_well_inside_game_window && !is_mouse_well_outside_game_window;
+    if is_mouse_over_window_frame then enable_mouse_events(); else disable_mouse_events();
+  }
+}
+
+
 
 
 Bunny :: struct {
@@ -137,69 +216,6 @@ init_bunnies :: () {
 }
 
 
-ismousedown := false;
-inputs :: () {
-  #import "Input";
-  update_window_events(); for event: events_this_frame {
-    if event.type     == .QUIT               exit(0);
-    if event.key_code == .ESCAPE             exit(0);
-    if event.key_code == .MOUSE_BUTTON_LEFT  ismousedown = xx event.key_pressed;
-  }
-
-  // this prevents fps drops when moving the mouse. but this also causes some weirdness
-  #if DISABLE_MOUSE_EVENTS {
-    ismousedown = xx (GetAsyncKeyState(VK_LBUTTON) & 0x8000);
-    mousepos := Mouse.pos(hwnd);
-
-    is_mouse_over_window_title_bar := mousepos.x >= -10 /*&& mousepos.x <= window_width + 10*/
-                                   && mousepos.y >= -30 && mousepos.y <= 0;
-    if is_mouse_over_window_title_bar enable_mouse_events(); else disable_mouse_events();
-  }
-}
-
-
-dt: type_of(dt_man.dt);
-update :: () {
-
-  fps_man.update(*fps_man);
-  dt_man.update(*dt_man);
-  dt = dt_man.dt;
-
-  // update window title with stats every once in a while
-    Global(#code max_dt: float64);
-    if dt > max_dt max_dt = dt;
-    if fps_man.ready { fps_man.ready = false;
-      worst_fps := round(1.0 / max_dt);
-      set_window_title(_("Bunnymark Jai D3D11 | FPS: #{fps_man.fps} | 0% Low: #{worst_fps} | Buns: #{bunnies.count}"));
-      max_dt = 0;
-    }
-
-
-  // add bunnies if mousedown
-    if ismousedown {
-      mousepos := Mouse.pos(hwnd);
-      w, h := window_size(hwnd);
-      for i: 0..AMOUNT_TO_ADD-1 #no_abc {
-        bunnies[bunnies.count].x = mapnumber(xx mousepos.x, 0,xx w, -1,  1);
-        bunnies[bunnies.count].y = mapnumber(xx mousepos.y, 0,xx h,  1, -1);
-        bunnies.count += 1;
-      }
-    }
-
-
-  // cpu processing update bunnies
-    for * bunny: bunnies  bunny.update(bunny);
-}
-
-
-
-render :: () {
-  Bunny.render();
-  present(xx VSYNC);
-}
-
-
-
 
 
 
@@ -214,8 +230,8 @@ init_window :: () {
     window_name = "",
     width       = window_width,
     height      = window_height,
-    window_x    = Monitor.size().w/2-window_width/2,
-    window_y    = Monitor.size().h/2-window_height/2,
+    window_x    = Monitor.size().w/2 - window_width/2,
+    window_y    = Monitor.size().h/2 - window_height/2,
   );
 }
 
@@ -298,6 +314,6 @@ init_bunny_shader :: () {
   HLSL);
 }
 
-// note: alt+f4 doesn't close the app because modules/input/windows.jai needs this code in case WM_KEYDOWN;
+// note: alt+f4 doesn't close the app because modules/input/windows.jai needs this code in case WM_SYSKEYDOWN;
 // if wParam == VK_F4 return DefWindowProcW(hwnd, message, wParam, lParam); // need this here to handle alt+f4 !
 // this is currently a problem with all jai applications

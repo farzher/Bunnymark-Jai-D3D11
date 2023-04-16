@@ -37,7 +37,7 @@ init_d3d_device :: () {
 
   mylog("crate d3d device and swap chain");
     flags : D3D11_CREATE_DEVICE_FLAG;
-    #if DEBUG flags |= .DEBUG;
+    // #if DEBUG flags |= .DEBUG; // this was crashing for me so i commented it out
 
     feature_levels := D3D_FEATURE_LEVEL.[._11_1, ._11_0, ._10_1, ._10_0];
 
@@ -406,7 +406,7 @@ set_pixel_shader :: (pixel_shader: *ID3D11PixelShader) {
 
 present :: (vsync: u32) {
   // Present the information rendered to the back buffer to the front buffer (the screen)
-  handle_hr(IDXGISwapChain_Present(swap_chain, vsync, 0));
+  IDXGISwapChain_Present(swap_chain, vsync, 0); // we used to handle_hr here but it crashed when the app is minimized
 
   // Clear the back buffer
   color: [4] float;

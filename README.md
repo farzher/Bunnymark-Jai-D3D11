@@ -15,5 +15,5 @@ https://github.com/farzher/Bunnymark-Jai-D3D11/releases/download/v0.0.2/bunnymar
 
 
 ### Build From Source
-0. have #the_compiler(v0.1.57)
+0. have #the_compiler(v0.1.60)
 1. run `run.bat`
