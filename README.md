@@ -1,7 +1,7 @@
 # Bunnymark Jai D3D11
 just checking how fast computers can go. probably the fastest bunnymark.
 
-i think this benchmark is cpu bound. there's no SIMD, SOA, or CPU optimization of any kind when updating bunnies. because i think this is how a real game would work.
+i think this benchmark is cpu bound. there's no SIMD, SOA, Threads, or CPU optimization of any kind when updating bunnies. because i think this is how a real game would work.
 
 
 ## Demo
