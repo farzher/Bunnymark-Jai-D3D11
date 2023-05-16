@@ -1,12 +1,11 @@
 # Bunnymark Jai D3D11
-just checking how fast computers can go.
-probably the fastest bunnymark.
+just checking how fast computers can go. probably the fastest bunnymark.
+
+i think this benchmark is cpu bound. there's no SIMD, SOA, or CPU optimization of any kind when updating bunnies. because i think this is how a real game would work.
 
 
 ## Demo
 https://www.youtube.com/watch?v=_cSMGs2LyD8
-
-i think this benchmark is cpu bound. there's no SIMD, SOA, or CPU optimization of any kind when updating bunnies. because i think this is how a real game would work.
 
 ### 1,000 bunnies at 13,000 fps (cpu: 8700k, gpu: 1070 mini)
 [![bunnymark youtube video](https://github.com/farzher/Bunnymark-Jai-D3D11/assets/1005136/71fec15d-3868-4929-8667-6e04d0e915a5)](https://www.youtube.com/watch?v=_cSMGs2LyD8)
